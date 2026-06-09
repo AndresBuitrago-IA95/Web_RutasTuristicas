@@ -1,0 +1,141 @@
+/* --- GLOBAL STYLING OVERRIDES --- */
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #334155; /* Slate 700 */
+    background-color: #f8fafc; /* Slate 50 */
+}
+
+.font-sans {
+    font-family: 'Inter', sans-serif;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+}
+
+/* --- CLASES DE COLOR SLATE CUSTOM --- */
+.bg-slate-900 {
+    background-color: #0f172a !important;
+}
+
+.bg-slate-800 {
+    background-color: #1e293b !important;
+}
+
+.text-slate-800 {
+    color: #1e293b !important;
+}
+
+.text-slate-700 {
+    color: #334155 !important;
+}
+
+.bg-danger\/20 {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* --- LISTAS DE CIUDADES --- */
+.max-height-ciudades {
+    max-height: 420px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.city-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Transiciones de selección */
+.transition-all {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.list-group-item-action:hover {
+    background-color: #f1f5f9; /* Slate 100 */
+    transform: translateX(4px);
+}
+
+/* Estila la ciudad seleccionada */
+.active-city.list-group-item-action {
+    background-color: #2563eb !important; /* Blue 600 */
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.active-city.list-group-item-action:hover {
+    transform: none;
+}
+
+/* --- CARDS DE RUTAS --- */
+.card-route {
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid #f1f5f9;
+}
+
+.card-route:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Resalta la ruta turística seleccionada */
+.border-selected-route {
+    border: 2px solid #2563eb !important;
+    background-color: #eff6ff; /* Blue 50 */
+}
+
+/* --- TABLA DE PARADAS --- */
+.table-slate-800 {
+    background-color: #f1f5f9;
+}
+
+.table-slate-800 th {
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 12px 16px;
+}
+
+.max-width-desc {
+    max-width: 250px;
+}
+
+/* --- COMPLEMENTARIOS --- */
+.text-xxs {
+    font-size: 0.7rem !important;
+    letter-spacing: 0.05em;
+}
+
+.text-xs {
+    font-size: 0.8rem !important;
+}
+
+.text-sm {
+    font-size: 0.9rem !important;
+}
+
+.no-carret::after {
+    display: none !important;
+}
+
+/* Soporte de truncamiento avanzado */
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+}
+
+/* Animaciones simples */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card, .table-responsive {
+    animation: fadeIn 0.35s ease-out;
+}

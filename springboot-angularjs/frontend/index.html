@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es" ng-app="rutasApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turismo Explorer - Spring Boot & AngularJS</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Lucide Icons (Web-safe SVGs or Bootstrap Icons) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body ng-controller="MainController" class="bg-light">
+
+    <!-- Navegación Superior -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-slate-900 shadow-sm py-3 mb-4">
+        <div class="container">
+            <span class="navbar-brand d-flex align-items-center gap-2">
+                <i class="bi bi-compass-fill text-warning"></i>
+                <strong class="font-sans">Turismo Explorer</strong>
+                <span class="badge bg-warning text-dark text-xs font-mono">SPRING BOOT + ANGULARJS</span>
+            </span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-white-50 text-xs font-mono">API: http://localhost:8080/api</span>
+                <button class="btn btn-outline-light btn-sm text-xs font-mono" ng-click="reseedData()" title="Sembrar Datos Iniciales H2">
+                    <i class="bi bi-database-fill-gear"></i> Reset DB
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container pb-5">
+        <!-- Notificaciones flotantes (Toasts) -->
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+            <div class="toast align-items-center text-white border-0 shadow-lg show" 
+                 role="alert" aria-live="assertive" aria-atomic="true"
+                 ng-if="toast.show"
+                 ng-class="{'bg-success': toast.type === 'success', 'bg-danger': toast.type === 'danger', 'bg-info': toast.type === 'info'}">
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-center gap-2">
+                        <i class="bi" ng-class="{'bi-check-circle-fill': toast.type === 'success', 'bi-exclamation-triangle-fill': toast.type === 'danger', 'bi-info-circle-fill': toast.type === 'info'}"></i>
+                        {{ toast.message }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" ng-click="hideToast()"></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- SECCIÓN 1: SELECCIÓN DE CIUDADES -->
+            <div class="col-lg-4 col-md-5">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                    <div class="card-header bg-white border-0 pt-4 pb-2 px-4">
+                        <h5 class="card-title text-slate-800 mb-1 d-flex align-items-center gap-2">
+                            <i class="bi bi-geo-alt-fill text-danger"></i>
+                            <strong>1. Ciudades</strong>
+                        </h5>
+                        <p class="text-muted text-xs mb-3">Busca y selecciona una destino turístico</p>
+                        
+                        <div class="input-group input-group-sm mb-2 rounded-3 overflow-hidden border">
+                            <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-0 px-1 text-xs" placeholder="Buscar ciudad..." ng-model="searchCiudad">
+                        </div>
+                    </div>
+                    
+                    <div class="list-group list-group-flush max-height-ciudades overflow-auto px-2 pb-3">
+                        <div ng-repeat="ciudad in ciudades | filter: searchCiudad" 
+                             ng-click="selectCiudad(ciudad)"
+                             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center border-0 rounded-3 mb-1 px-3 py-2.5 cursor-pointer transition-all"
+                             ng-class="{'active-city bg-primary text-white': selectedCiudad.id === ciudad.id}">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="city-dot" ng-class="{'bg-white': selectedCiudad.id === ciudad.id, 'bg-primary': selectedCiudad.id !== ciudad.id}"></span>
+                                <span class="fw-medium text-sm">{{ ciudad.nombre }}</span>
+                            </div>
+                            <span class="text-xs font-mono opacity-75" ng-class="{'text-white': selectedCiudad.id === ciudad.id, 'text-muted': selectedCiudad.id !== ciudad.id}">
+                                {{ ciudad.latitud | number:2 }}, {{ ciudad.longitud | number:2 }}
+                            </span>
+                        </div>
+                        <div class="text-center p-4 text-muted text-xs" ng-if="ciudades.length === 0">
+                            Cargando ciudades desde el servidor... No olvides iniciar el backend de Spring Boot.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detalle de la Ciudad Seleccionada -->
+                <div class="card bg-slate-800 text-white border-0 shadow-sm rounded-4 p-4 mb-4" ng-show="selectedCiudad">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge bg-danger/20 text-danger text-xs fw-semibold">DETALLE DESTINO</span>
+                        <span class="font-mono text-xs opacity-50">ID: #{{ selectedCiudad.id }}</span>
+                    </div>
+                    <h4 class="fw-bold mb-1">{{ selectedCiudad.nombre }}</h4>
+                    <p class="text-white-50 text-xs mb-3">Coordenadas del centro geográfico:</p>
+                    <div class="row text-center g-2">
+                        <div class="col-6">
+                            <div class="bg-slate-700/50 rounded-3 p-2 border border-slate-700">
+                                <small class="text-white-50 d-block text-xxs">LATITUD</small>
+                                <strong class="font-mono text-xs">{{ selectedCiudad.latitud || 'N/A' }}</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-slate-700/50 rounded-3 p-2 border border-slate-700">
+                                <small class="text-white-50 d-block text-xxs">LONGITUD</small>
+                                <strong class="font-mono text-xs">{{ selectedCiudad.longitud || 'N/A' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECCIÓN 2: LISTAR, CREAR, ACTUALIZAR Y ELIMINAR RUTAS -->
+            <div class="col-lg-8 col-md-7">
+                
+                <!-- Sin Selección de Ciudad -->
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted" ng-if="!selectedCiudad">
+                    <i class="bi bi-geo-alt display-2 text-muted opacity-40 mb-3"></i>
+                    <h5 class="fw-semibold text-slate-700">Selecciona una ciudad turística</h5>
+                    <p class="text-xs max-w-xs mx-auto mb-0">Elige un destino en la barra lateral para listar, agregar, modificar o eliminar sus rutas turísticas y paradas asociadas.</p>
+                </div>
+
+                <!-- Con Ciudad Seleccionada -->
+                <div ng-if="selectedCiudad">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <h4 class="text-slate-800 fw-bold mb-0">Rutas en {{ selectedCiudad.nombre }}</h4>
+                            <p class="text-muted text-xs mb-0">Gestión de itinerarios guiados</p>
+                        </div>
+                        <button class="btn btn-primary d-flex align-items-center gap-2 text-xs py-2 px-3 rounded-3" ng-click="openRutaModal()">
+                            <i class="bi bi-plus-lg"></i> Agregar Ruta
+                        </button>
+                    </div>
+
+                    <!-- Listado de rutas turísticas -->
+                    <div class="row g-3 mb-5">
+                        <div class="col-lg-6" ng-repeat="ruta in rutas">
+                            <div class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden card-route"
+                                 ng-class="{'border-selected-route': selectedRuta.id === ruta.id}">
+                                <div class="card-body p-4 d-flex flex-column">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-map-fill text-primary text-sm"></i>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle text-xxs px-2">ID: {{ ruta.id }}</span>
+                                        </div>
+                                        
+                                        <!-- Menú de Acciones CRUD Ruta -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-link btn-sm text-muted p-0 no-carret" type="button" data-bs-toggle="dropdown">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end text-sm">
+                                                <li>
+                                                    <button class="dropdown-item d-flex align-items-center gap-2 cursor-pointer" ng-click="openRutaModal(ruta)">
+                                                        <i class="bi bi-pencil text-warning"></i> Editar Ruta
+                                                    </button>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <button class="dropdown-item text-danger d-flex align-items-center gap-2 cursor-pointer" ng-click="deleteRuta(ruta)">
+                                                        <i class="bi bi-trash-fill"></i> Eliminar Ruta
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="fw-bold text-slate-800 mb-2 cursor-pointer" ng-click="selectRuta(ruta)">{{ ruta.nombre }}</h5>
+                                    <p class="text-muted text-xs flex-grow-1 line-clamp-3 mb-3">{{ ruta.descripcion || 'Sin descripción disponible.' }}</p>
+
+                                    <!-- Enlace a Paradas -->
+                                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-light">
+                                        <button class="btn btn-sm px-3 py-1.5 rounded-3 border text-xs" 
+                                                ng-click="selectRuta(ruta)"
+                                                ng-class="selectedRuta.id === ruta.id ? 'btn-primary text-white' : 'btn-outline-primary text-primary'">
+                                            <i class="bi" ng-class="selectedRuta.id === ruta.id ? 'bi-eye-fill' : 'bi-eye'"></i>
+                                            Ver Paradas
+                                        </button>
+                                        <span class="text-xs text-muted font-mono"><i class="bi bi-signpost-fill text-muted"></i> Lat: {{ selectedCiudad.latitud | number:1 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estado vacío para Rutas -->
+                        <div class="col-12" ng-if="rutas.length === 0">
+                            <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
+                                <i class="bi bi-map display-4 text-muted opacity-40 mb-2"></i>
+                                <h6 class="fw-semibold">No hay rutas registradas</h6>
+                                <p class="text-xs mb-0">Presiona "Agregar Ruta" para registrar la primera ruta en esta ciudad.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN 3: GESTIÓN DE PARADAS DE LA RUTA SELECCIONADA -->
+                    <div ng-show="selectedRuta">
+                        <hr class="my-5 border-slate-200">
+
+                        <div class="d-flex align-items-center justify-content-between mb-4">
+                            <div>
+                                <span class="badge bg-secondary-subtle text-secondary text-xxs font-mono mb-1">PARADAS DE LA RUTA</span>
+                                <h4 class="text-slate-800 fw-bold mb-0">Itinerario: {{ selectedRuta.nombre }}</h4>
+                                <p class="text-muted text-xs mb-0">Listado de paraderos ordenados por el campo <strong>Orden</strong> de visita</p>
+                            </div>
+                            <button class="btn btn-dark d-flex align-items-center gap-2 text-xs py-2 px-3 rounded-3" ng-click="openStopModal()">
+                                <i class="bi bi-plus-lg"></i> Agregar Parada
+                            </button>
+                        </div>
+
+                        <!-- Listado de Paradas (Tabla o Timeline) -->
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-5">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 text-sm">
+                                    <thead class="table-slate-800 text-slate-500 font-mono text-xs">
+                                        <tr>
+                                            <th class="ps-4" width="70">ORDEN</th>
+                                            <th>NOMBRE PARADA</th>
+                                            <th>DESCRIPCIÓN</th>
+                                            <th>COORDENADAS</th>
+                                            <th>MINUTOS</th>
+                                            <th class="text-end pe-4" width="120">ACCIONES</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="border-top-0">
+                                        <tr ng-repeat="parada in paradas">
+                                            <td class="ps-4">
+                                                <span class="badge bg-dark rounded-circle d-flex align-items-center justify-content-center text-xs" style="width: 25px; height: 25px;">
+                                                    {{ parada.orden }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold text-slate-800">{{ parada.nombre }}</div>
+                                            </td>
+                                            <td class="text-muted text-xs text-truncate max-width-desc">
+                                                {{ parada.descripcion || '-' }}
+                                            </td>
+                                            <td>
+                                                <span class="font-mono text-xs text-muted">
+                                                    {{ parada.latitud | number:4 }}, {{ parada.longitud | number:4 }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-warning text-dark font-mono text-xs">
+                                                    <i class="bi bi-clock-fill"></i> {{ parada.tiempo }} min
+                                                </span>
+                                            </td>
+                                            <td class="text-end pe-4">
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-warning border-0" ng-click="openStopModal(parada)" title="Modificar parada">
+                                                        <i class="bi bi-pencil-fill"></i>
+                                                    </button>
+                                                    <button class="btn btn-outline-danger border-0" ng-click="deleteStop(parada)" title="Eliminar parada">
+                                                        <i class="bi bi-trash3-fill"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <tr ng-if="paradas.length === 0">
+                                            <td colspan="6" class="text-center p-5 text-muted">
+                                                <i class="bi bi-signpost display-4 text-muted opacity-30 mb-2"></i>
+                                                <p class="mb-0 text-xs">Sin paradas asociadas a esta ruta.</p>
+                                                <button class="btn btn-sm btn-dark text-xs mt-2" ng-click="openStopModal()"><i class="bi bi-plus"></i>Agregar parada inicial</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL FORMULARIO DE RUTA (Agregar / Modificar) -->
+    <div class="modal fade" id="rutaModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <form ng-submit="saveRuta()">
+                    <div class="modal-header bg-slate-900 text-white py-3 border-0 rounded-top-4">
+                        <h5 class="modal-title fw-bold" id="rutaModalLabel">{{ editingRuta.id ? 'Modificar Ruta' : 'Agregar Nueva Ruta' }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-sm">
+                        <div class="mb-3">
+                            <label class="form-label text-slate-700 fw-medium">Nombre de la Ruta Turística <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" ng-model="editingRuta.nombre" required placeholder="Ej. El Itinerario Histórico">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-slate-700 fw-medium">Descripción y Atractivos</label>
+                            <textarea class="form-control" ng-model="editingRuta.descripcion" rows="4" placeholder="Explica de forma concisa el recorrido, actividades y puntos destacados..."></textarea>
+                        </div>
+                        <div class="p-3 bg-light rounded-3 d-flex align-items-center gap-2 text-xs text-muted border">
+                            <i class="bi bi-info-circle-fill text-primary"></i>
+                            <span>La ruta se asociará por defecto a la ciudad seleccionada: <strong>{{ selectedCiudad.nombre }}</strong>.</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                        <button type="button" class="btn btn-outline-secondary text-xs rounded-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary text-xs rounded-3 px-4">
+                            <i class="bi bi-check2"></i> Guardar Ruta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FORMULARIO DE PARADA (Agregar / Modificar) -->
+    <div class="modal fade" id="stopModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <form ng-submit="saveStop()">
+                    <div class="modal-header bg-slate-900 text-white py-3 border-0 rounded-top-4">
+                        <h5 class="modal-title fw-bold" id="stopModalLabel">{{ editingStop.id ? 'Modificar Parada' : 'Agregar Nueva Parada' }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-sm">
+                        <div class="mb-3">
+                            <label class="form-label text-slate-700 fw-medium">Nombre de la Parada <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" ng-model="editingStop.nombre" required placeholder="Ej: Mirador de las Escalinatas">
+                        </div>
+                        
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-slate-700 fw-medium">Orden de Visita <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" ng-model="editingStop.orden" required min="1" placeholder="Ej: 1">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-slate-700 fw-medium">Tiempo de Parada (min) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" ng-model="editingStop.tiempo" required min="1" placeholder="Ej: 15">
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label text-slate-700 fw-medium">Latitud <span class="text-danger">*</span></label>
+                                <input type="number" step="0.000001" class="form-control font-mono text-xs" ng-model="editingStop.latitud" required placeholder="Ej: 6.2442">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label text-slate-700 fw-medium">Longitud <span class="text-danger">*</span></label>
+                                <input type="number" step="0.000001" class="form-control font-mono text-xs" ng-model="editingStop.longitud" required placeholder="Ej: -75.5812">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-slate-700 fw-medium">Descripción del Paradero</label>
+                            <textarea class="form-control" ng-model="editingStop.descripcion" rows="3" placeholder="Información destacada del punto de interés, recomendaciones..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0 pb-4 px-4">
+                        <button type="button" class="btn btn-outline-secondary text-xs rounded-3" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary text-xs rounded-3 px-4">
+                            <i class="bi bi-check2"></i> Guardar Parada
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AngularJS v1.8.2 CDN -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <!-- Custom JS (App) -->
+    <script src="app.js"></script>
+</body>
+</html>
