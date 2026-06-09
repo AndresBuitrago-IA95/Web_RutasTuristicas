@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/ciudades")
@@ -20,15 +21,34 @@ public class CiudadController {
     @Autowired
     private PaisRepository paisRepository;
 
+    // --- DTO de respuesta aplanado para el frontend ---
+    public static class CiudadResponse {
+        public Long id;
+        public String nombre;
+        public Double latitud;
+        public Double longitud;
+        public Long idPais;
+
+        public CiudadResponse(Ciudad c) {
+            this.id = c.getId();
+            this.nombre = c.getNombre();
+            this.latitud = c.getLatitud();
+            this.longitud = c.getLongitud();
+            this.idPais = c.getPais() != null ? c.getPais().getId() : null;
+        }
+    }
+
     @GetMapping
-    public List<Ciudad> getAllCiudades() {
-        return ciudadRepository.findAll();
+    public List<CiudadResponse> getAllCiudades() {
+        return ciudadRepository.findAll().stream()
+                .map(CiudadResponse::new)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ciudad> getCiudadById(@PathVariable Long id) {
+    public ResponseEntity<CiudadResponse> getCiudadById(@PathVariable Long id) {
         return ciudadRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(c -> ResponseEntity.ok(new CiudadResponse(c)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -40,7 +60,7 @@ public class CiudadController {
                     .body("País con ID " + req.getIdPais() + " no encontrado.");
         }
         Ciudad ciudad = new Ciudad(req.getNombre(), req.getLatitud(), req.getLongitud(), optPais.get());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ciudadRepository.save(ciudad));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new CiudadResponse(ciudadRepository.save(ciudad)));
     }
 
     @PutMapping("/{id}")
@@ -55,7 +75,7 @@ public class CiudadController {
         if (req.getIdPais() != null) {
             paisRepository.findById(req.getIdPais()).ifPresent(ciudad::setPais);
         }
-        return ResponseEntity.ok(ciudadRepository.save(ciudad));
+        return ResponseEntity.ok(new CiudadResponse(ciudadRepository.save(ciudad)));
     }
 
     @DeleteMapping("/{id}")
@@ -67,7 +87,7 @@ public class CiudadController {
         return ResponseEntity.notFound().build();
     }
 
-    // DTO
+    // DTO de entrada
     public static class CiudadRequest {
         private String nombre;
         private Double latitud;

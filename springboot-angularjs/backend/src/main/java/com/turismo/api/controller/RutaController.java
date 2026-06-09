@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/rutas")
@@ -24,20 +25,41 @@ public class RutaController {
     @Autowired
     private TipoRepository tipoRepository;
 
+    // --- DTO de respuesta aplanado para el frontend ---
+    public static class RutaResponse {
+        public Long id;
+        public String nombre;
+        public String descripcion;
+        public Long idCiudad;
+        public Long idTipo;
+
+        public RutaResponse(Ruta r) {
+            this.id = r.getId();
+            this.nombre = r.getNombre();
+            this.descripcion = r.getDescripcion();
+            this.idCiudad = r.getCiudad() != null ? r.getCiudad().getId() : null;
+            this.idTipo = r.getTipo() != null ? r.getTipo().getId() : null;
+        }
+    }
+
     @GetMapping
-    public List<Ruta> getAllRutas() {
-        return rutaRepository.findAll();
+    public List<RutaResponse> getAllRutas() {
+        return rutaRepository.findAll().stream()
+                .map(RutaResponse::new)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/ciudad/{idCiudad}")
-    public List<Ruta> getRutasByCiudad(@PathVariable Long idCiudad) {
-        return rutaRepository.findByCiudadId(idCiudad);
+    public List<RutaResponse> getRutasByCiudad(@PathVariable Long idCiudad) {
+        return rutaRepository.findByCiudadId(idCiudad).stream()
+                .map(RutaResponse::new)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Ruta> getRutaById(@PathVariable Long id) {
+    public ResponseEntity<RutaResponse> getRutaById(@PathVariable Long id) {
         return rutaRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(r -> ResponseEntity.ok(new RutaResponse(r)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -54,7 +76,7 @@ public class RutaController {
                     .body("Tipo con ID " + req.getIdTipo() + " no encontrado.");
         }
         Ruta ruta = new Ruta(req.getNombre(), req.getDescripcion(), optCiudad.get(), optTipo.get());
-        return ResponseEntity.status(HttpStatus.CREATED).body(rutaRepository.save(ruta));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new RutaResponse(rutaRepository.save(ruta)));
     }
 
     @PutMapping("/{id}")
@@ -71,7 +93,7 @@ public class RutaController {
         if (req.getIdTipo() != null) {
             tipoRepository.findById(req.getIdTipo()).ifPresent(ruta::setTipo);
         }
-        return ResponseEntity.ok(rutaRepository.save(ruta));
+        return ResponseEntity.ok(new RutaResponse(rutaRepository.save(ruta)));
     }
 
     @DeleteMapping("/{id}")
@@ -83,7 +105,7 @@ public class RutaController {
         return ResponseEntity.notFound().build();
     }
 
-    // DTO
+    // DTO de entrada
     public static class RutaRequest {
         private String nombre;
         private String descripcion;

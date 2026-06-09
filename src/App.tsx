@@ -227,7 +227,8 @@ export default function App() {
     const isEdit = !!routeData.id;
 
     try {
-      const response = await fetch("/api/rutas", {
+      const url = isEdit ? `/api/rutas/${routeData.id}` : "/api/rutas";
+      const response = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(routeData),
@@ -281,7 +282,8 @@ export default function App() {
     const isEdit = !!stopData.id;
 
     try {
-      const response = await fetch("/api/paradas", {
+      const url = isEdit ? `/api/paradas/${stopData.id}` : "/api/paradas";
+      const response = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(stopData),

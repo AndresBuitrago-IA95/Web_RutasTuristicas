@@ -53,7 +53,8 @@ export default function AdminPanel({ paises, ciudades, tipos, onRefresh, onClose
     };
 
     try {
-      const response = await fetch("/api/ciudades", {
+      const url = editingItem ? `/api/ciudades/${editingItem.id}` : "/api/ciudades";
+      const response = await fetch(url, {
         method: editingItem ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -83,7 +84,8 @@ export default function AdminPanel({ paises, ciudades, tipos, onRefresh, onClose
     };
 
     try {
-      const response = await fetch("/api/paises", {
+      const url = editingItem ? `/api/paises/${editingItem.id}` : "/api/paises";
+      const response = await fetch(url, {
         method: editingItem ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -112,7 +114,8 @@ export default function AdminPanel({ paises, ciudades, tipos, onRefresh, onClose
     };
 
     try {
-      const response = await fetch("/api/tipos", {
+      const url = editingItem ? `/api/tipos/${editingItem.id}` : "/api/tipos";
+      const response = await fetch(url, {
         method: editingItem ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
