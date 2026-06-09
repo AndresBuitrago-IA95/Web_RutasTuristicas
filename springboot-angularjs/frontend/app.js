@@ -12,6 +12,11 @@
         // --- CONSTANTES ---
         var API_BASE_URL = 'http://localhost:8080/api';
 
+        // --- VARIABLES DE MAPA (LEAFLET) ---
+        var mapInstance = null;
+        var markerLayer = null;
+        var polylineInstance = null;
+
         // --- ESTADOS DE LA APLICACIÓN ---
         $scope.ciudades = [];
         $scope.selectedCiudad = null;
@@ -71,6 +76,10 @@
             $scope.selectedRuta = null;
             $scope.paradas = [];
             $scope.loadRutas(ciudad.id);
+            if (mapInstance) {
+                mapInstance.remove();
+                mapInstance = null;
+            }
         };
 
         // --- ACCIONES: RUTAS ---
@@ -183,6 +192,7 @@
                     $scope.paradas.sort(function (a, b) {
                         return a.orden - b.orden;
                     });
+                    $scope.updateMap();
                 })
                 .catch(function (error) {
                     console.error('Error al cargar paradas:', error);
@@ -282,7 +292,101 @@
             $scope.selectedCiudad = null;
             $scope.selectedRuta = null;
             $scope.paradas = [];
+            if (mapInstance) {
+                mapInstance.remove();
+                mapInstance = null;
+            }
             $scope.showToastMsg('La selección se ha restablecido.', 'info');
+        };
+
+        // --- ACTUALIZACIÓN DE MAPA (LEAFLET) ---
+        $scope.updateMap = function () {
+            setTimeout(function () {
+                var mapContainer = document.getElementById('route-map');
+                if (!mapContainer || !$scope.selectedCiudad) return;
+
+                var cityCoords = [$scope.selectedCiudad.latitud, $scope.selectedCiudad.longitud];
+
+                // Inicializar mapa si no existe
+                if (!mapInstance) {
+                    mapInstance = L.map('route-map', {
+                        scrollWheelZoom: false
+                    }).setView(cityCoords, 13);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }).addTo(mapInstance);
+
+                    markerLayer = L.layerGroup().addTo(mapInstance);
+                }
+
+                // Limpiar marcadores y polilíneas anteriores
+                if (markerLayer) {
+                    markerLayer.clearLayers();
+                }
+                if (polylineInstance) {
+                    polylineInstance.remove();
+                    polylineInstance = null;
+                }
+
+                // Si no hay paradas, centrar en la ciudad
+                if ($scope.paradas.length === 0) {
+                    mapInstance.setView(cityCoords, 13);
+                    mapInstance.invalidateSize();
+                    return;
+                }
+
+                var latlngs = [];
+
+                // Agregar marcadores ordenados
+                $scope.paradas.forEach(function (stop) {
+                    var position = [stop.latitud, stop.longitud];
+                    latlngs.push(position);
+
+                    // Icono personalizado con el número de parada
+                    var customIcon = L.divIcon({
+                        html: '<div style="display: flex; align-items: center; justify-content: center; position: relative;">' +
+                              '<span style="position: absolute; display: inline-flex; width: 16px; height: 16px; border-radius: 50%; background-color: #3b82f6; opacity: 0.75; animation: ping 1s infinite;"></span>' +
+                              '<div style="position: relative; display: flex; align-items: center; justify-content: center; border-radius: 50%; background-color: #2563eb; color: white; font-weight: bold; font-size: 11px; width: 22px; height: 22px; border: 2px solid white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">' +
+                              stop.orden + '</div></div>',
+                        className: 'custom-leaflet-icon',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+
+                    var marker = L.marker(position, { icon: customIcon });
+
+                    var popupContent = '<div style="font-family: sans-serif; padding: 4px; min-width: 150px;">' +
+                        '<div style="font-weight: bold; color: #1e3a8a; font-size: 13px;">Parada ' + stop.orden + ': ' + stop.nombre + '</div>' +
+                        (stop.tiempo ? '<div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Tiempo: ' + stop.tiempo + ' min</div>' : '') +
+                        '<div style="font-size: 11px; color: #374151; margin-top: 4px;">' + (stop.descripcion || 'Sin descripción.') + '</div>' +
+                        '</div>';
+
+                    marker.bindPopup(popupContent);
+                    markerLayer.addLayer(marker);
+                });
+
+                // Trazar la polilínea conectando las paradas
+                if (latlngs.length > 1) {
+                    polylineInstance = L.polyline(latlngs, {
+                        color: '#2563eb',
+                        weight: 4,
+                        opacity: 0.8,
+                        dashArray: '5, 8',
+                        lineCap: 'round',
+                        lineJoin: 'round'
+                    }).addTo(mapInstance);
+
+                    // Ajustar zoom para que quepan todas las paradas
+                    var bounds = L.latLngBounds(latlngs);
+                    mapInstance.fitBounds(bounds, { padding: [50, 50] });
+                } else if (latlngs.length === 1) {
+                    mapInstance.setView(latlngs[0], 14);
+                }
+
+                // Forzar refresco de tamaño
+                mapInstance.invalidateSize();
+            }, 150);
         };
 
     }]);

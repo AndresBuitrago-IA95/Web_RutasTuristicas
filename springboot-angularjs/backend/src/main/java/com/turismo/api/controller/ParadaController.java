@@ -41,21 +41,23 @@ public class ParadaController {
 
     @PostMapping
     public ResponseEntity<?> createParada(@RequestBody ParadaRequest req) {
-        return rutaRepository.findById(req.getIdRuta())
-                .map(ruta -> {
-                    Parada parada = new Parada();
-                    parada.setNombre(req.getNombre());
-                    parada.setOrden(req.getOrden());
-                    parada.setLatitud(req.getLatitud());
-                    parada.setLongitud(req.getLongitud());
-                    parada.setTiempo(req.getTiempo());
-                    parada.setDescripcion(req.getDescripcion());
-                    parada.setRuta(ruta);
-                    Parada saved = paradaRepository.save(parada);
-                    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-                })
-                .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Ruta con ID " + req.getIdRuta() + " no encontrada."));
+        var optionalRuta = rutaRepository.findById(req.getIdRuta());
+        if (optionalRuta.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Ruta con ID " + req.getIdRuta() + " no encontrada.");
+        }
+        
+        Ruta ruta = optionalRuta.get();
+        Parada parada = new Parada();
+        parada.setNombre(req.getNombre());
+        parada.setOrden(req.getOrden());
+        parada.setLatitud(req.getLatitud());
+        parada.setLongitud(req.getLongitud());
+        parada.setTiempo(req.getTiempo());
+        parada.setDescripcion(req.getDescripcion());
+        parada.setRuta(ruta);
+        Parada saved = paradaRepository.save(parada);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
@@ -79,12 +81,12 @@ public class ParadaController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteParada(@PathVariable Long id) {
-        return paradaRepository.findById(id)
-                .map(parada -> {
-                    paradaRepository.delete(parada);
-                    return ResponseEntity.noContent().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        if (paradaRepository.existsById(id)) {
+            paradaRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     // DTO auxiliar para recibir los datos de transferencia del cliente

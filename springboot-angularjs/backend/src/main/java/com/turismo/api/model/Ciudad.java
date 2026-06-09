@@ -6,72 +6,57 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "ciudades")
+@Table(name = "ciudad")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Ciudad {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "nombre", nullable = false, length = 50)
     private String nombre;
 
-    private Double latitud;
+    @Column(name = "longitud", nullable = false)
     private Double longitud;
 
-    // Relación OneToMany: Una ciudad tiene múltiples rutas
+    @Column(name = "latitud", nullable = false)
+    private Double latitud;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "idpais", nullable = false)
+    @JsonIgnoreProperties("ciudades")
+    private Pais pais;
+
     @OneToMany(mappedBy = "ciudad", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnoreProperties("ciudad") // Evita ciclo infinito en serialización JSON
+    @JsonIgnoreProperties("ciudad")
     private List<Ruta> rutas = new ArrayList<>();
 
-    // Constructores
     public Ciudad() {}
 
-    public Ciudad(String nombre, Double latitud, Double longitud) {
+    public Ciudad(String nombre, Double latitud, Double longitud, Pais pais) {
         this.nombre = nombre;
         this.latitud = latitud;
         this.longitud = longitud;
+        this.pais = pais;
     }
 
-    // Getters y Setters
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getNombre() { return nombre; }
+    public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getNombre() {
-        return nombre;
-    }
+    public Double getLatitud() { return latitud; }
+    public void setLatitud(Double latitud) { this.latitud = latitud; }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
-    }
+    public Double getLongitud() { return longitud; }
+    public void setLongitud(Double longitud) { this.longitud = longitud; }
 
-    public Double getLatitud() {
-        return latitud;
-    }
+    public Pais getPais() { return pais; }
+    public void setPais(Pais pais) { this.pais = pais; }
 
-    public void setLatitud(Double latitud) {
-        this.latitud = latitud;
-    }
-
-    public Double getLongitud() {
-        return longitud;
-    }
-
-    public void setLongitud(Double longitud) {
-        this.longitud = longitud;
-    }
-
-    public List<Ruta> getRutas() {
-        return rutas;
-    }
-
-    public void setRutas(List<Ruta> rutas) {
-        this.rutas = rutas;
-    }
+    public List<Ruta> getRutas() { return rutas; }
+    public void setRutas(List<Ruta> rutas) { this.rutas = rutas; }
 }

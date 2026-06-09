@@ -1,9 +1,9 @@
 package com.turismo.api.controller;
 
-import com.turismo.api.model.Ciudad;
 import com.turismo.api.model.Ruta;
 import com.turismo.api.repository.CiudadRepository;
 import com.turismo.api.repository.RutaRepository;
+import com.turismo.api.repository.TipoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +20,9 @@ public class RutaController {
 
     @Autowired
     private CiudadRepository ciudadRepository;
+
+    @Autowired
+    private TipoRepository tipoRepository;
 
     @GetMapping
     public List<Ruta> getAllRutas() {
@@ -39,75 +42,61 @@ public class RutaController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createRuta(@RequestBody RutaRequest rutaRequest) {
-        return ciudadRepository.findById(rutaRequest.getIdCiudad())
-                .map(ciudad -> {
-                    Ruta ruta = new Ruta();
-                    ruta.setNombre(rutaRequest.getNombre());
-                    ruta.setDescripcion(rutaRequest.getDescripcion());
-                    ruta.setCiudad(ciudad);
-                    Ruta saved = rutaRepository.save(ruta);
-                    return ResponseEntity.status(HttpStatus.CREATED).body(saved);
-                })
-                .orElse(ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("Ciudad con ID " + rutaRequest.getIdCiudad() + " no encontrada."));
+    public ResponseEntity<?> createRuta(@RequestBody RutaRequest req) {
+        var optCiudad = ciudadRepository.findById(req.getIdCiudad());
+        if (optCiudad.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Ciudad con ID " + req.getIdCiudad() + " no encontrada.");
+        }
+        var optTipo = tipoRepository.findById(req.getIdTipo());
+        if (optTipo.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Tipo con ID " + req.getIdTipo() + " no encontrado.");
+        }
+        Ruta ruta = new Ruta(req.getNombre(), req.getDescripcion(), optCiudad.get(), optTipo.get());
+        return ResponseEntity.status(HttpStatus.CREATED).body(rutaRepository.save(ruta));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateRuta(@PathVariable Long id, @RequestBody RutaRequest rutaRequest) {
-        return rutaRepository.findById(id)
-                .map(ruta -> {
-                    ruta.setNombre(rutaRequest.getNombre());
-                    ruta.setDescripcion(rutaRequest.getDescripcion());
-                    if (rutaRequest.getIdCiudad() != null) {
-                        ciudadRepository.findById(rutaRequest.getIdCiudad()).ifPresent(ruta::setCiudad);
-                    }
-                    Ruta updated = rutaRepository.save(ruta);
-                    return ResponseEntity.ok(updated);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> updateRuta(@PathVariable Long id, @RequestBody RutaRequest req) {
+        var optRuta = rutaRepository.findById(id);
+        if (optRuta.isEmpty()) return ResponseEntity.notFound().build();
+
+        Ruta ruta = optRuta.get();
+        ruta.setNombre(req.getNombre());
+        ruta.setDescripcion(req.getDescripcion());
+        if (req.getIdCiudad() != null) {
+            ciudadRepository.findById(req.getIdCiudad()).ifPresent(ruta::setCiudad);
+        }
+        if (req.getIdTipo() != null) {
+            tipoRepository.findById(req.getIdTipo()).ifPresent(ruta::setTipo);
+        }
+        return ResponseEntity.ok(rutaRepository.save(ruta));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteRuta(@PathVariable Long id) {
-        return rutaRepository.findById(id)
-                .map(ruta -> {
-                    rutaRepository.delete(ruta);
-                    return ResponseEntity.noContent().<Void>build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        if (rutaRepository.existsById(id)) {
+            rutaRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 
-    // DTO auxiliar para recibir los datos de transferencia del cliente
+    // DTO
     public static class RutaRequest {
         private String nombre;
         private String descripcion;
         private Long idCiudad;
+        private Long idTipo;
 
-        public RutaRequest() {}
-
-        public String getNombre() {
-            return nombre;
-        }
-
-        public void setNombre(String nombre) {
-            this.nombre = nombre;
-        }
-
-        public String getDescripcion() {
-            return descripcion;
-        }
-
-        public void setDescripcion(String descripcion) {
-            this.descripcion = descripcion;
-        }
-
-        public Long getIdCiudad() {
-            return idCiudad;
-        }
-
-        public void setIdCiudad(Long idCiudad) {
-            this.idCiudad = idCiudad;
-        }
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getDescripcion() { return descripcion; }
+        public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+        public Long getIdCiudad() { return idCiudad; }
+        public void setIdCiudad(Long idCiudad) { this.idCiudad = idCiudad; }
+        public Long getIdTipo() { return idTipo; }
+        public void setIdTipo(Long idTipo) { this.idTipo = idTipo; }
     }
 }
